@@ -79,6 +79,6 @@ getBadges() {
 }
 
 echo "## Part 1"
-getPairsFromCompartments "challenge.txt" | paste -s -d+ - | bc
+getPairsFromCompartments "data.txt" | paste -s -d+ - | bc
 echo "## Part 2"
-getBadges "challenge.txt" | paste -s -d+ - | bc
+getBadges "data.txt" | paste -s -d+ - | bc

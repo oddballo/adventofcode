@@ -16,10 +16,10 @@ subtotals(){
 }
 
 echo "## Part 1"
-subtotals "challenge.txt" | sort -t"," -k1n,1 | tail -n 1
+subtotals "data.txt" | sort -t"," -k1n,1 | tail -n 1
 
 echo "## Part 2"
-SUBTOTALS=$(subtotals "challenge.txt" | sort -t"," -k1n,1 | tail -n 3)
+SUBTOTALS=$(subtotals "data.txt" | sort -t"," -k1n,1 | tail -n 3)
 SUBTOTAL=0
 while read CURRENT; do 
     SUBTOTAL=$((SUBTOTAL+CURRENT)); 

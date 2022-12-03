@@ -63,7 +63,7 @@ subtotals(){
 }
 
 echo "## Part 1"
-subtotals "challenge.txt" 0 | paste -s -d+ - | bc
+subtotals "data.txt" 0 | paste -s -d+ - | bc
 
 echo "## Part 2"
-subtotals "challenge.txt" 1 | paste -s -d+ - | bc
+subtotals "data.txt" 1 | paste -s -d+ - | bc
