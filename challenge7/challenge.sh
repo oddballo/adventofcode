@@ -4,6 +4,7 @@ files(){
     FILENAME=$1
     CURRENT=""
     while read -r ENTRY; do
+
         PART=$(echo "$ENTRY" | cut -f 1 -d" ")
         if [[ "$PART" == "$" ]]; then
             PART2=$(echo "$ENTRY" | cut -f 2 -d" ")
@@ -28,7 +29,7 @@ files(){
     done < "$FILENAME"
 }
 
-total(){
+totalFolders(){
     local FILES=("$@")
     declare -A FOLDER
     for FILE in "${FILES[@]}"; do
@@ -37,7 +38,10 @@ total(){
         CURRENT=""
 
         IFS='/' read -a PARTS <<< "$FILEPATH"
-        for PART in "${PARTS[@]}"; do
+        LENGTH=${#PARTS[@]}
+        # Stop one short on the folder; we don't care for files
+        for (( j=0; j < LENGTH - 1; j++ )); do
+            PART=${PARTS[$j]}
             if [ -z "$PART" ]; then
                 CURRENT="/"
             else
@@ -56,7 +60,18 @@ total(){
 }
 
 FILES=($(files "data.txt" | sort))
-#set -x
-total "${FILES[@]}"
-#TOTALS=($(total "${FILES[@]}"))
-#echo "${TOTALS[@]}"
+TOTALS=($(totalFolders "${FILES[@]}")) 
+
+echo "## PART 1"
+printf '%s\n' "${TOTALS[@]}" | awk -F\, '$2 < 100000' | cut -f2 -d"," | paste -s -d+ - | bc 
+
+echo "## PART 2"
+TOTAL=70000000
+TARGET=30000000
+USED=$(printf '%s\n' "${TOTALS[@]}" | grep '^/,' | cut -f2 -d",")
+FREE=$((TOTAL - USED))
+DIFF=$((TARGET - FREE))
+printf '%s\n' "${TOTALS[@]}" | awk -F\, -v diff="$DIFF" '$2 > diff { print $2 }' | sort -n | head -n 1
+
+
+
