@@ -8,6 +8,9 @@ loadColumns(){
     read -r EXAMPLELINE < "$FILENAME"
     for (( i=0; i<${#EXAMPLELINE}; i++ )); do
         while read -r ENTRY; do
+            if [ -z "$ENTRY" ]; then
+                continue
+            fi
             echo -n "${ENTRY:$i:1}"
         done < "$FILENAME"
         echo
@@ -17,21 +20,24 @@ loadColumns(){
 loadRows(){
     FILENAME=$1
     while read -r ENTRY; do
-        echo "$ENTRY"
+        if [ -z "$ENTRY" ]; then
+            continue
+        fi
+        echo "${ENTRY//[!0-9]/}"
     done < "$FILENAME"
 }
 
-
 check(){
-    COLS=($(loadColumns "data.txt"))
+    FILENAME=$1
+    COLS=($(loadColumns "$FILENAME"))
     for (( i=0; i<${#COLS[@]}; i++ )){
-        checkLeftToRight "${COLS[$i]}" "%d,$i\n" "normal"
-        checkLeftToRight "${COLS[$i]}" "%d,$i\n" "inversion"
+        checkLeftToRight "${COLS[$i]}" "%d,$i,TB\n" "normal"
+        checkLeftToRight "${COLS[$i]}" "%d,$i,BT\n" "inversion"
     }
-    ROWS=($(loadRows "data.txt"))
+    ROWS=($(loadRows "$FILENAME"))
     for (( i=0; i<${#ROWS[@]}; i++ )){
-        checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "normal"
-        checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "inversion"
+        checkLeftToRight "${ROWS[$i]}" "$i,%d,LR\n" "normal"
+        checkLeftToRight "${ROWS[$i]}" "$i,%d,RL\n" "inversion"
     }
 }
 
@@ -40,34 +46,42 @@ checkLeftToRight(){
     STRING=$1
     FORMAT=$2
     INVERSION="$3"
-    MAX=0
-    if [ -z "$STRING" ]; then
-        return
-    fi
-
+    MAX=-1
     if [[ "$INVERSION" == "inversion" ]]; then
-        LENGTH=${#STRING}
-        COUNT=$((LENGTH-1))
+        COUNT=$((${#STRING}-1))
         INCREMENT=-1
         STRING=$(echo $STRING | rev)
     else 
         COUNT=0
         INCREMENT=1
     fi
-    while read -r -n1 NUM; do
-        if [ -z "$NUM" ]; then
+    while read -r -n1 CHAR; do
+        if [ -z "$CHAR" ]; then
             continue
         fi
-        if [ $NUM -gt $MAX ]; then
+        if [ $CHAR -gt $MAX ]; then
             printf "$FORMAT" "$COUNT"
             # Optimization
-            if [ $NUM -eq 9 ]; then
+            if [ $CHAR -eq 9 ]; then
                 return
             fi
-            MAX=$NUM
+            MAX=$CHAR
         fi
         COUNT=$((COUNT+INCREMENT))
     done <<< "$STRING"
 }
 
-check | sort | uniq | wc -l
+calculateView(){
+    ENTRIES=($@)
+    declare -a SCORES
+    for ENTRY in "${ENTRIES[@]}"; do
+        read ROW COL DIRECTION $ENTRY"
+    done
+}
+
+PROCESSED=$(check "data.txt" | sort -k1,1n -k2,2n -t,)
+
+#echo "## Part 1"
+#printf '%s\n' "${PROCESSED[@]}" | awk -F, '{ print $1 "," $2 }' | uniq | wc -l
+
+calculateView "${PROCESSED[@]}"
