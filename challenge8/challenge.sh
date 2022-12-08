@@ -27,18 +27,19 @@ loadRows(){
     done < "$FILENAME"
 }
 
-check(){
+numberOfTreesInViewFromOutside(){
     FILENAME=$1
+    ROWS=($(loadRows "$FILENAME"))
     COLS=($(loadColumns "$FILENAME"))
+
     for (( i=0; i<${#COLS[@]}; i++ )){
         checkLeftToRight "${COLS[$i]}" "%d,$i\n" "normal"
         checkLeftToRight "${COLS[$i]}" "%d,$i\n" "inversion"
-    }
-    ROWS=($(loadRows "$FILENAME"))
+    } &
     for (( i=0; i<${#ROWS[@]}; i++ )){
         checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "normal"
         checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "inversion"
-    }
+    } &
 }
 
 
@@ -71,7 +72,7 @@ checkLeftToRight(){
     done <<< "$STRING"
 }
 
-check2(){
+bestViewFromAnySingleTree(){
     FILENAME=$1
     ROWS=($(loadRows "$FILENAME"))
     COLS=($(loadColumns "$FILENAME"))
@@ -92,7 +93,7 @@ check2(){
             PATHU=$(checkVision "$CELL" "$(echo "${COL:0:$i}" | rev)")
             PATHD=$(checkVision "$CELL" "${COL:$INCI}")
             echo $((PATHL * PATHR * PATHU * PATHD))
-        }
+        } &
     }
 }
 
@@ -112,9 +113,11 @@ checkVision(){
     echo $COUNT
 }
 
+FILENAME="data.txt"
+
 echo "## Part 1"
-check "data.txt" | sort -k1,1n -k2,2n -t, | uniq | wc -l
+numberOfTreesInViewFromOutside "$FILENAME" | sort -k1,1n -k2,2n -t, | uniq | wc -l
 
 echo "## Part 2"
-check2 "data.txt" | sort -r -n | head -n 1
+bestViewFromAnySingleTree "$FILENAME" "${COLS[@]}" | sort -r -n | head -n 1
 
