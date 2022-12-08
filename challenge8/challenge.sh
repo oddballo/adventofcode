@@ -31,13 +31,13 @@ check(){
     FILENAME=$1
     COLS=($(loadColumns "$FILENAME"))
     for (( i=0; i<${#COLS[@]}; i++ )){
-        checkLeftToRight "${COLS[$i]}" "%d,$i,TB\n" "normal"
-        checkLeftToRight "${COLS[$i]}" "%d,$i,BT\n" "inversion"
+        checkLeftToRight "${COLS[$i]}" "%d,$i\n" "normal"
+        checkLeftToRight "${COLS[$i]}" "%d,$i\n" "inversion"
     }
     ROWS=($(loadRows "$FILENAME"))
     for (( i=0; i<${#ROWS[@]}; i++ )){
-        checkLeftToRight "${ROWS[$i]}" "$i,%d,LR\n" "normal"
-        checkLeftToRight "${ROWS[$i]}" "$i,%d,RL\n" "inversion"
+        checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "normal"
+        checkLeftToRight "${ROWS[$i]}" "$i,%d\n" "inversion"
     }
 }
 
@@ -71,17 +71,50 @@ checkLeftToRight(){
     done <<< "$STRING"
 }
 
-calculateView(){
-    ENTRIES=($@)
-    declare -a SCORES
-    for ENTRY in "${ENTRIES[@]}"; do
-        read ROW COL DIRECTION $ENTRY"
-    done
+check2(){
+    FILENAME=$1
+    ROWS=($(loadRows "$FILENAME"))
+    COLS=($(loadColumns "$FILENAME"))
+    for (( i=0; i<${#ROWS[@]}; i++ )){
+        for (( j=0; j<${#COLS[@]}; j++ )){
+   
+            ROW="${ROWS[$i]}"
+            COL="${COLS[$j]}"
+
+            INCI=$((i+1))
+            INCJ=$((j+1))
+
+            # Same as ${COL:$i:1}
+            CELL="${ROW:$j:1}"
+
+            PATHL=$(checkVision "$CELL" "$(echo "${ROW:0:$j}" | rev)")
+            PATHR=$(checkVision "$CELL" "${ROW:$INCJ}")
+            PATHU=$(checkVision "$CELL" "$(echo "${COL:0:$i}" | rev)")
+            PATHD=$(checkVision "$CELL" "${COL:$INCI}")
+            echo $((PATHL * PATHR * PATHU * PATHD))
+        }
+    }
 }
 
-PROCESSED=$(check "data.txt" | sort -k1,1n -k2,2n -t,)
+checkVision(){
+    VALUE=$1
+    ROUTE=$2
+    COUNT=0
+    while read -n1 STEP; do
+        if [ -z "$STEP" ]; then
+            continue
+        fi
+        COUNT=$((COUNT+1))
+        if [ $STEP -ge $VALUE ]; then
+            break
+        fi
+    done <<< "$ROUTE"
+    echo $COUNT
+}
 
-#echo "## Part 1"
-#printf '%s\n' "${PROCESSED[@]}" | awk -F, '{ print $1 "," $2 }' | uniq | wc -l
+echo "## Part 1"
+check "data.txt" | sort -k1,1n -k2,2n -t, | uniq | wc -l
 
-calculateView "${PROCESSED[@]}"
+echo "## Part 2"
+check2 "data.txt" | sort -r -n | head -n 1
+
