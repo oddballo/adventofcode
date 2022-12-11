@@ -10,10 +10,12 @@ declare -a TESTS
 declare -a ACTION_CONDITION_TRUE
 declare -a ACTION_CONDITION_FALSE
 declare -a EVALUATIONS
+MOD=1
 
 loadRules(){
     local FILENAME=$1
     local COUNT=0
+    local ENTRY
     while read -r ENTRY; do
         if [ -z "$ENTRY" ]; then
             continue
@@ -33,6 +35,7 @@ loadRules(){
             # Load Test
             read ENTRY
             TESTS[$COUNT]=$(sed 's/[^0-9,]*//g' <<< "$ENTRY")
+            MOD=$((MOD * TESTS[$COUNT]))
             # Load Action Condition when True
             read ENTRY
             ACTION_CONDITION_TRUE[$COUNT]=$(sed 's/[^0-9,]*//g' <<< "$ENTRY")
@@ -40,27 +43,20 @@ loadRules(){
             read ENTRY
             ACTION_CONDITION_FALSE[$COUNT]=$(sed 's/[^0-9,]*//g' <<< "$ENTRY")
             # Initalize evaluations
-            EVALUATIONS[$COUNT]=0
-            
+            EVALUATIONS[$COUNT]=0 
 
             COUNT=$((COUNT+1))        
         fi
     done < "$FILENAME"
 }
 
-#    printf '%s\n' "${ITEMS[@]}"
-#    printf '%s\n' "${OPERATION_VALUE_1[@]}"
-#    printf '%s\n' "${OPERATION_VALUE_2[@]}"
-#    printf '%s\n' "${OPERATION_OPERATOR[@]}"
-#    printf '%s\n' "${TESTS[@]}"
-#    printf '%s\n' "${ITEMS[@]}"
-#    printf '%s\n' "${ACTION_CONDITION_TRUE[@]}"
-#    printf '%s\n' "${ACTION_CONDITION_FALSE[@]}"
-
 process(){
-    FILENAME=$1
+    local FILENAME=$1
+    local LOOP=$2
+    local REDUCE=${3:-}
+    local i j ITEM VALUE1 VALUE2 OPERATOR WORRY
     loadRules "$FILENAME"
-    for (( i=0; i<20; i++ )); do
+    for (( i=0; i<$LOOP; i++ )); do
         for (( j=0; j<${#TESTS[@]}; j++)); do
             for ITEM in ${ITEMS[$j]//,/ }; do
                 if [ -z "$ITEM" ]; then
@@ -76,7 +72,18 @@ process(){
                 if [[ "$VALUE2" == "old" ]]; then
                     VALUE2=$ITEM
                 fi
-                WORRY=$(echo "($VALUE1 $OPERATOR $VALUE2) / 3" | bc)
+                case "$OPERATOR" in
+                    "*")
+                        WORRY=$((VALUE1 * VALUE2))
+                        ;;
+                    "+")
+                        WORRY=$((VALUE1 + VALUE2))
+                        ;;
+                esac
+                if [ ! -z "$REDUCE" ]; then
+                    WORRY=$((WORRY / 3))
+                fi
+                WORRY=$((WORRY % MOD))
                 MONKEY_TRUE=${ACTION_CONDITION_TRUE[$j]}
                 MONKEY_FALSE=${ACTION_CONDITION_FALSE[$j]}
                 if [ $((WORRY % TESTS[$j])) -eq 0 ]; then
@@ -84,15 +91,18 @@ process(){
                 else
                     ITEMS[$MONKEY_FALSE]="${ITEMS[$MONKEY_FALSE]},$WORRY"
                 fi
-                EVALUATIONS[$j]=$((EVALUATIONS[$j]+1))
+                ((EVALUATIONS[$j]+=1))
             done
             ITEMS[$j]=""
         done
     done
 
     for (( i=0; i<${#EVALUATIONS[@]}; i++ )); do
-        echo "${EVALUATIONS[$i]},Monkey $((i+1))"
+        echo "${EVALUATIONS[$i]}"
     done
 }
 
-process "data.txt" | sort -t, -k1n,1 | tail -n 2 | cut -f1 -d"," | paste -s -d* - | bc 
+echo "## Part 1"
+process "data.txt" "20" "reduce" | sort -n -k1 -r | head -n 2 | paste -s -d* - | bc 
+echo "## Part 2"
+process "data.txt" "10000" | sort -n -k1 -r | head -n 2 | paste -s -d* - | bc 
