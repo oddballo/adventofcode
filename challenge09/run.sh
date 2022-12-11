@@ -5,4 +5,4 @@ docker run \
     -w "/opt/challenge" \
     --rm \
     -it bash:5.2.12 \
-    ./challenge.sh
+    time -v ./challenge.sh
