@@ -9,7 +9,9 @@ STARTX=-1
 STARTY=-1
 FINISHX=-1
 FINISHY=-1
+declare -a COORDINATES
 declare -a SCORES
+A=$(printf '%d\n' "'a")
 
 loadMap(){
     local FILENAME=$1
@@ -84,11 +86,17 @@ checkCell(){
     local COMING_FROM=$2
     local X=$3
     local Y=$4
+    local RULE=$5
     local VALUE
     getCoordinate $X $Y
     VALUE=$RETVAL
     getScore $X $Y
     SCORE=$RETVAL
+
+    if [[ "$RULE" == "part2" ]] &&
+       [[ "$VALUE" == "$A" ]]; then
+        NEW_SCORE=0
+    fi
 
     if [ $((VALUE-1)) -le $COMING_FROM ] &&
         { [ $SCORE -eq '-1' ] || [ $NEW_SCORE -lt $SCORE ]; }; then
@@ -106,38 +114,41 @@ printMap(){
         echo
     done
 }
+process(){
+    local FILENAME="$1"
+    local RULE="$2"
+    loadScore
+    COORDINATES+=("$STARTX,$STARTY")
+    while [ "${#COORDINATES[@]}" -gt 0 ]; do
+        XY=${COORDINATES[0]}
+        IFS="," read X Y <<< $XY
+        getCoordinate $X $Y
+        VALUE=$RETVAL
+        
+        getScore $X $Y
+        NEW_SCORE="$(($RETVAL+1))"
+
+        if [ $((X+1)) -lt $WIDTH ]; then
+            checkCell $NEW_SCORE $VALUE $((X+1)) $((Y)) $RULE
+        fi
+        if [ $((X-1)) -ge 0 ]; then
+            checkCell $NEW_SCORE $VALUE $((X-1)) $((Y)) $RULE
+        fi
+        if [ $((Y+1)) -lt $HEIGHT ]; then
+            checkCell $NEW_SCORE $VALUE $((X)) $((Y+1)) $RULE
+        fi
+        if [ $((Y-1)) -ge 0 ]; then
+            checkCell $NEW_SCORE $VALUE $((X)) $((Y-1)) $RULE
+        fi
+        COORDINATES=("${COORDINATES[@]:1}")
+    done
+    getScore $FINISHX $FINISHY
+    echo "$RETVAL"
+}
 
 loadMap "data.txt"
-loadScore
-echo "Height: $HEIGHT, Width: $WIDTH, StartX: $STARTX, StartY: $STARTY, FinishX: $FINISHX, FinishY: $FINISHY"
+echo "## Part 1"
+process "data.txt" "part1"
+echo "## Part 2"
+process "data.txt" "part2"
 
-declare -a COORDINATES
-COORDINATES+=("$STARTX,$STARTY")
-STARTED_HIKE=false
-while [ "${#COORDINATES[@]}" -gt 0 ]; do
-    XY=${COORDINATES[0]}
-    IFS="," read X Y <<< $XY
-    getCoordinate $X $Y
-    VALUE=$RETVAL
-    getScore $X $Y
-    NEW_SCORE="$(($RETVAL+1))"
-
-    if [ $((X+1)) -lt $WIDTH ]; then
-        checkCell $NEW_SCORE $VALUE $((X+1)) $((Y))
-    fi
-    if [ $((X-1)) -ge 0 ]; then
-        checkCell $NEW_SCORE $VALUE $((X-1)) $((Y)) 
-    fi
-    if [ $((Y+1)) -lt $HEIGHT ]; then
-        checkCell $NEW_SCORE $VALUE $((X)) $((Y+1)) 
-    fi
-    if [ $((Y-1)) -ge 0 ]; then
-        checkCell $NEW_SCORE $VALUE $((X)) $((Y-1)) 
-    fi
-    COORDINATES=("${COORDINATES[@]:1}")
-done
-
-printMap
-
-getScore $FINISHX $FINISHY
-echo "$RETVAL"
