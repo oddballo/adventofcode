@@ -50,7 +50,7 @@ nextValue(){
 compare(){
     local A=$1
     local B=$2
-    local IS_LIST_A IS_LIST_B VALUES_A VALUES_B A_SIZE B_SIZE REMAINING MIN
+    local IS_LIST_A IS_LIST_B VALUES_A VALUES_B A_SIZE B_SIZE REMAINING MIN VAL
 
     # Check for empty
     if [ -z "$A" ] && [ -z "$B" ]; then
@@ -147,10 +147,10 @@ compare(){
     return 3
 }
 
-processFile(){
+findGoodPackets(){
     local FILENAME=$1
     local COUNT=1
-    local LINE1 LINE2 EMPTY
+    local LINE1 LINE2 EMPTY VAL
     while read LINE1 && read LINE2 && read EMPTY; do
         if [ -z "$LINE1" ] || [ -z "$LINE2" ]; then
             echo "Something wrong reading file. Aborting."
@@ -164,5 +164,56 @@ processFile(){
     done < "$FILENAME"
 }
 
+qsort() {
+   (($#==0)) && return 0
+   local stack=( 0 $(($#-1)) ) beg end i pivot smaller larger val
+   RETVAL=("$@")
+   while ((${#stack[@]})); do
+      beg=${stack[0]}
+      end=${stack[1]}
+      stack=( "${stack[@]:2}" )
+      smaller=() larger=()
+      pivot=${RETVAL[beg]}
+      for ((i=beg+1;i<=end;++i)); do
+         compare "${RETVAL[i]}" "$pivot" || val=$?
+         if [ $val -eq 2 ]; then
+            smaller+=( "${RETVAL[i]}" )
+         else
+            larger+=( "${RETVAL[i]}" )
+         fi
+      done
+      RETVAL=( "${RETVAL[@]:0:beg}" "${smaller[@]}" "$pivot" "${larger[@]}" "${RETVAL[@]:end+1}" )
+      if ((${#smaller[@]}>=2)); then stack+=( "$beg" "$((beg+${#smaller[@]}-1))" ); fi
+      if ((${#larger[@]}>=2)); then stack+=( "$((end-${#larger[@]}+1))" "$end" ); fi
+   done
+}
+
+findIndexPacketsInSortedList(){
+    local FILENAME=$1
+    local COUNT=1
+    local LINE i j VAL TMP
+    local LINES
+    declare -a LINES=()
+    while read LINE; do
+        if [ -z "$LINE" ]; then
+            continue
+        fi
+        LINES+=("$LINE")
+    done < "$FILENAME"
+    LINES+=("[[2]]")
+    LINES+=("[[6]]")
+    qsort "${LINES[@]}"
+    for (( i=0; i<"${#RETVAL[@]}"; i++ )); do
+        if [[ "${RETVAL[$i]}" == "[[2]]" ]] ||
+           [[ "${RETVAL[$i]}" == "[[6]]" ]]; then
+            echo "$((i+1))"
+        fi
+    done
+}
+
+
 echo "## Part 1"
-processFile "data.txt" | paste -s -d+ - | bc 
+findGoodPackets "data.txt" | paste -s -d+ - | bc 
+
+echo "## Part 2"
+findIndexPacketsInSortedList "data.txt" | paste -s -d* - | bc
